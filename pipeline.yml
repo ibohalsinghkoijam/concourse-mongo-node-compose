@@ -1,0 +1,48 @@
+---
+resources:
+# - name: node
+#   type: docker-image
+#   source:
+#     repository: node
+#     tag: '11-alpine'
+
+- name: gitrepo
+  type: git
+  source:
+    uri: https://github.com/ibohalsinghkoijam/concourse-mongo-node-compose.git
+    branch: master
+    
+jobs:
+- name: integration-test
+  plan:
+  - aggregate:
+    - get: gitrepo
+    # - get: node
+    #   params: {save: true}
+  - task: run-test
+    privileged: true
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: amidos/dcind
+      inputs:
+      - name: gitrepo
+      # - name: node
+      run:
+        path: sh
+        args: 
+        - -c
+        - |
+          source /docker-lib.sh
+          start_docker
+
+          # docker load -i node/image
+          # docker tag "$(cat node/image-id)" "$(cat node/repository):$(cat node/tag)"
+          # docker images
+
+          cd gitrepo
+          docker-compose -f docker/docker-compose.yml build
+          docker-compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit
+          # docker-compose down
